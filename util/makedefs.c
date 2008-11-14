@@ -806,6 +806,9 @@ static const char *window_opts[] = {
 #ifdef BEOS_GRAPHICS
 		"BeOS InterfaceKit",
 #endif
+#ifdef TEMPLATEHACK_GRAPHICS
+		"templatehack interface",
+#endif
 		0
 	};
 

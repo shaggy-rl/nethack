@@ -40,6 +40,10 @@ extern struct window_procs Gnome_procs;
 #ifdef MSWIN_GRAPHICS
 extern struct window_procs mswin_procs;
 #endif
+#ifdef TEMPLATEHACK_GRAPHICS
+extern struct window_procs templatehack_procs;
+extern void NDECL(templatehack_win_init);
+#endif
 
 STATIC_DCL void FDECL(def_raw_print, (const char *s));
 
@@ -80,6 +84,9 @@ struct win_choices {
 #endif
 #ifdef MSWIN_GRAPHICS
     { &mswin_procs, 0 },
+#endif
+#ifdef TEMPLATEHACK_GRAPHICS
+    { &templatehack_procs, templatehack_win_init },
 #endif
     { 0, 0 }		/* must be last */
 };

@@ -211,6 +211,28 @@ WINBEOBJ =
 #WINBESRC = ../win/BeOS/winbe.cpp ../win/BeOS/NHWindow.cpp \
 #	../win/BeOS/NHMenuWindow.cpp ../win/BeOS/NHMapWindow.cpp tile.c
 #WINBEOBJ = winbe.o NHWindow.o NHMenuWindow.o NHMapWindow.o tile.o
+#
+# Files for the templatehack interface.
+#
+WINTHDIR = ../win/templatehack/
+WINTHINCLUDE = -I$(WINTHDIR)
+#WINTHCFLAGS = $(CFLAGS) $(WINTHINCLUDE)
+WINTHCFLAGS = $(CFLAGS) $(WINTHINCLUDE) -DDEBUG
+WINTHSRC = $(WINTHDIR)templatehack_main.c \
+           $(WINTHDIR)templatehack_nhinput.c \
+           $(WINTHDIR)templatehack_nhmenus.c \
+           $(WINTHDIR)templatehack_nhoutput.c \
+           $(WINTHDIR)templatehack_nhwindows.c \
+           $(WINTHDIR)templatehack_nhunixtty.c \
+           $(WINTHDIR)templatehack_nhpaletted.c
+WINTHOBJ = templatehack_main.o \
+           templatehack_nhinput.o \
+           templatehack_nhmenus.o \
+           templatehack_nhoutput.o \
+           templatehack_nhwindows.o \
+           templatehack_nhunixtty.o \
+           templatehack_nhpaletted.o \
+           tile.o
 
 #
 #
@@ -254,6 +276,9 @@ WINGEMLIB = -le_gem -lgem
 #
 # libraries for BeOS 
 WINBELIB = -lbe
+#
+# libraries for templatehack
+WINTHLIB = 
 
 WINLIB = $(WINTTYLIB)
 
@@ -693,6 +718,20 @@ qt_clust.o: ../win/Qt/qt_clust.cpp ../include/qt_clust.h
 	$(CXX) $(CXXFLAGS) -c ../win/Qt/qt_clust.cpp
 qttableview.o: ../win/Qt/qttableview.cpp ../include/qttableview.h
 	$(CXX) $(CXXFLAGS) -c ../win/Qt/qttableview.cpp
+templatehack_main.o: $(WINTHDIR)templatehack_main.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_main.c
+templatehack_nhinput.o: $(WINTHDIR)templatehack_nhinput.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_nhinput.c
+templatehack_nhmenus.o: $(WINTHDIR)templatehack_nhmenus.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_nhmenus.c
+templatehack_nhoutput.o: $(WINTHDIR)templatehack_nhoutput.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_nhoutput.c
+templatehack_nhpaletted.o: $(WINTHDIR)templatehack_nhpaletted.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_nhpaletted.c
+templatehack_nhunixtty.o: $(WINTHDIR)templatehack_nhunixtty.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_nhunixtty.c
+templatehack_nhwindows.o: $(WINTHDIR)templatehack_nhwindows.c
+	$(CC) $(WINTHCFLAGS) -c $(WINTHDIR)templatehack_nhwindows.c
 monstr.o: monstr.c $(CONFIG_H)
 vis_tab.o: vis_tab.c $(CONFIG_H) ../include/vis_tab.h
 allmain.o: allmain.c $(HACK_H)
