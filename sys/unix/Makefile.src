@@ -160,7 +160,7 @@ else
 	SDL_CONFIG = sdl-config
 	SDLMAIN = -lSDLmain
 endif
-VULTURESCFLAGS = -Wall -g
+VULTURESCFLAGS = -Wall -g -I /opt/local/include
 CFLAGS = -g -I../include -I ../win/vultures $(shell $(SDL_CONFIG) --cflags)
 LFLAGS = 
 
