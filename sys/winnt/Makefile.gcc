@@ -32,9 +32,16 @@
 
 # Game Installation Variables
 
-GAME = slashem
+GAME = noegnud-SlashEM
 # The GNU Make has a problem if you include a drive spec below (unfortunately).
-GAMEDIR = \games\slam32d
+GAMEDIR = ..\binary
+
+MINGW = /mingw
+GNUWIN32 = $(MINGW)/GnuWin32/gnuwin32/
+MSYS = /msys/1.0/local
+SDLCFLAGS = -I$(GNUWIN32)/include -I$(MSYS)/include -I$(MINGW)/include -I$(MINGW)/include/SDL -I$(GNUWIN32)/include/SDL -I$(MSYS)/include/SDL
+SDLLFLAGS = -L$(GNUWIN32)/lib -L$(MSYS)/lib -L$(MINGW)/lib
+SDLLIBS = -lmingw32 -lSDLmain -lSDL_image -lpng -lSDL_mixer -lSDL_ttf -lfreetype -lSDL -mwindows
 
 #
 # Directories
@@ -60,6 +67,7 @@ WTTY = ..\win\tty
 WIN32 = ..\win\win32
 WGTK = ..\win\gtk
 WSHR = ..\win\share
+WNOEGNUD = ..\win\noegnud
 
 #
 #  Executables.
@@ -163,6 +171,8 @@ USE_DLB = Y
 
 # USE_PROXIFIED = Y
 
+USE_NOEGNUD = Y
+
 #
 # Uncomment the line below if you want to compile with the internal malloc
 # routines (used to test for memory leaks).
@@ -178,7 +188,7 @@ USE_DLB = Y
 # nothing below this line should have to be changed
 #
 
-SOUND = ntsound.o
+#SOUND = ntsound.o
 
 #SOUND =
 
@@ -208,15 +218,15 @@ LFLAGS =
 else
 
 # Debugging
-#CFLAGS = -pg -c -I..\include $(DLBFLG)
+#CFLAGS = -pg -c -I..\include $(DLBFLG) -DNOEGNUDDEBUG $(SDLCFLAGS) -DSLASHEM_0_0_7E7F2
 #LFLAGS = -pg
 
 #    Normal
-CFLAGS = -c -O -I../include $(DLBFLG)
-LFLAGS =
+CFLAGS = -c -O2 -I../include $(DLBFLG) $(SDLCFLAGS) -DSLASHEM
+LFLAGS = $(SDLLFLAGS)
 
 # Comment out this line if you have also commented out TTY_GRAPHICS in config.h
-CFLAGS += -DWIN32CON
+# CFLAGS += -DWIN32CON
 endif
 
 # The pkg-config executable
@@ -270,6 +280,56 @@ WINGTKOBJ1 = gtk.o gtkgetlin.o gtkstatus.o gtkmenu.o gtkyn.o gtkextcmd.o \
 WINGTKOBJ2 = gtktile.o gtkhackrc.o gtkprefs.o gtkprogress.o gtkint.o gtkext.o
 endif
 #
+# Files for noegnud interface.
+ifeq ($(USE_NOEGNUD),Y)
+WINNOEGNUDSRC = $(WNOEGNUD)/noegnud_interface.c \
+				$(WNOEGNUD)/noegnud_common.c \
+				$(WNOEGNUD)/noegnud_glfuncs.c \
+				$(WNOEGNUD)/noegnud_collection.c \
+				$(WNOEGNUD)/noegnud_tilesets.c \
+				$(WNOEGNUD)/noegnud_gui.c \
+				$(WNOEGNUD)/noegnud_rip.c \
+				$(WNOEGNUD)/noegnud_options.c \
+				$(WNOEGNUD)/noegnud_typeloader.c \
+				$(WNOEGNUD)/noegnud_fonts.c \
+				$(WNOEGNUD)/noegnud_gff_tga.c \
+				$(WNOEGNUD)/noegnud_render.c \
+				$(WNOEGNUD)/noegnud_render_char.c \
+				$(WNOEGNUD)/noegnud_render_tile.c \
+				$(WNOEGNUD)/noegnud_render_3d.c \
+				$(WNOEGNUD)/noegnud_lang.c \
+				$(WNOEGNUD)/noegnud_debug.c \
+				$(WNOEGNUD)/noegnud_mem.c \
+				$(WNOEGNUD)/noegnud_reference.c \
+				$(WNOEGNUD)/noegnud_textcolour.c \
+				$(WNOEGNUD)/noegnud_textcolouring.c \
+				$(WNOEGNUD)/noegnud_sound.c \
+				$(WNOEGNUD)/noegnud_widgettheme.c
+WINNOEGNUDOBJ = noegnud_interface.o \
+				noegnud_common.o \
+				noegnud_glfuncs.o \
+				noegnud_collection.o \
+				noegnud_tilesets.o \
+				noegnud_gui.o \
+				noegnud_rip.o \
+				noegnud_options.o \
+				noegnud_typeloader.o \
+				noegnud_fonts.o \
+				noegnud_gff_tga.o \
+				noegnud_render.o \
+				noegnud_render_char.o \
+				noegnud_render_tile.o \
+				noegnud_render_3d.o \
+				noegnud_lang.o \
+				noegnud_debug.o \
+				noegnud_mem.o \
+				noegnud_reference.o \
+				noegnud_textcolour.o \
+				noegnud_textcolouring.o \
+				noegnud_sound.o \
+				noegnud_widgettheme.o
+endif
+#
 # Files for a proxy interface.
 ifeq ($(USE_PROXY),Y)
 WINPROXYSRC = ../win/proxy/winproxy.c ../win/proxy/callback.c
@@ -299,8 +359,8 @@ PROXYCLNTSRC = ../win/proxy/proxysvc.c ../win/proxy/proxycb.c \
 	../win/proxy/prxyconn.c
 PROXYCLNTOBJ = proxysvc.o proxycb.o prxymap.o prxychar.o prxytile.o prxyconn.o
 
-WINSRC = $(WINTTYSRC)
-WOBJ01 = $(WINTTYOBJ)
+WINSRC = $(WINNOEGNUDSRC)
+WOBJ01 = $(WINNOEGNUDOBJ)
 WOBJ02 =
 WOBJ03 =
 WOBJ04 =
@@ -322,11 +382,19 @@ WINSRC += $(WINGTKSRC)
 WOBJ02 += $(WINGTKOBJ1)
 WOBJ03 += $(WINGTKOBJ2)
 LFLAGS += -mwindows
+else
+ifeq ($(USE_NOEGNUD),Y)
+WINSRC += $(WINNOEGNUDSRC)
+LFLAGS += -mwindows -L$(MSYS)/local/lib
+WOBJ04 += noegnudres.o tile.o
+CFLAGS += -I$(WNOEGNUD)
+else
 ifneq ($(USE_PROXY),Y)
 WINSRC += $(PROXYUTLSRC) $(PROXYSHRSRC)
 WOBJ04 += tile.o
 WOBJ05 += $(PROXYUTLOBJ) $(PROXYSHROBJ)
 endif	# USE_PROXY
+endif	# USE_NOEGNUD
 endif	# USE_GTK
 endif	# USE_MSWIN
 
@@ -364,6 +432,10 @@ endif
 # Note: cc-gtk handles Gtk+ and its dependencies.
 ifeq ($(USE_GTK),Y)
 WINGTKLIB =
+endif
+
+ifeq ($(USE_NOEGNUD),Y)
+WINNOEGNUDLIB = -lwinmm $(SDLLIBS) -lopengl32 -lglu32 -lregex
 endif
 
 ifeq ($(USE_PROXY),Y)
@@ -661,12 +733,20 @@ $(GAMEFILE): cc-gtk.exe gamedir.tag utility.tag $(NHALLOCDLL) $(NHALLOCA) \
 	$(COPY) $(GAME).exe $(GAMEFILE)
 	$(DEL) $(GAME).exe
 else
+ifeq ($(USE_NOEGNUD),Y)
+$(GAMEFILE): gamedir.tag utility.tag $(NHALLOCDLL) $(NHALLOCA) \
+		$(ALLOBJ) $(GAME).lnk
+	$(LINK) $(LFLAGS) $(GTKGCCFLAGS) -o$(GAME).exe $(GAME).lnk $(WINNOEGNUDLIB)
+	$(COPY) $(GAME).exe $(GAMEFILE)
+	$(DEL) $(GAME).exe
+else
 $(GAMEFILE): gamedir.tag utility.tag $(NHALLOCDLL) $(NHALLOCA) \
 		$(ALLOBJ) $(GAME).lnk $(GAMEDIR)/nhdefkey.dll \
 		$(GAMEDIR)/nh340key.dll $(GAMEDIR)/nhraykey.dll
 	$(LINK) $(LFLAGS) $(GTKGCCFLAGS) -o$(GAME).exe $(GAME).lnk
 	$(COPY) $(GAME).exe $(GAMEFILE)
 	$(DEL) $(GAME).exe
+endif
 endif
 
 nhdefkey.o:
@@ -986,6 +1066,9 @@ winres.o:	tiles.bmp $(WIN32)\winhack.rc $(WIN32)\mnsel.bmp \
 		$(WIN32)\petmark.bmp $(WIN32)\SlashEM.ico $(WIN32)\splash.bmp
 	$(RC) -o$@ --include-dir=$(WIN32) -DNODEBUG -i $(WIN32)\winhack.rc
 
+noegnudres.o: $(WNOEGNUD)\slashem.rc $(WIN32)\SlashEM.ico
+	$(RC) -o$@ --include-dir=$(WIN32) -DNODEBUG -i $(WNOEGNUD)\slashem.rc
+
 #
 #  Makedefs Stuff
 #
@@ -1130,7 +1213,7 @@ recover.exe:   $(RECOVOBJS)
 recover.c:  $(UTIL)\recover.c
 	$(COPY) $(UTIL)\recover.c .
 
-recover.o:   $(CONFIG_H) recover.c
+recover.o:   $(CONFIG_H) recover.c $(INCL)/win32api.h
 	$(CCOMPILE) $(CFLAGS) -o$@ recover.c
 
 #
@@ -1221,6 +1304,9 @@ txtmerge.o: $(WSHR)\txtmerge.c $(INCL)\config.h $(INCL)\tile.h
 tile2x11.o: ../win/X11/tile2x11.c $(INCL)\hack.h $(INCL)\tile.h \
 						$(INCL)\tile2x11.h
 	$(CCOMPILE) $(CFLAGS) -c ../win/X11/tile2x11.c
+
+$(INCL)/win32api.h:
+	$(COPY) ..\sys\winnt\win32api.h $(INCL)\win32api.h                                     
 
 tile2bmp.o: ../win/share/tile2bmp.c $(INCL)\hack.h $(INCL)\tile.h \
 						$(INCL)\win32api.h
@@ -1773,6 +1859,52 @@ wingem.o: ../win/gem/wingem.c $(HACK_H) $(INCL)/func_tab.h $(INCL)/dlb.h \
 wingem1.o: ../win/gem/wingem1.c $(INCL)/gem_rsc.h $(INCL)/load_img.h \
 		$(INCL)/gr_rect.h $(INCL)/wintype.h $(INCL)/wingem.h
 	$(CCOMPILE) $(CFLAGS) -o$@ ../win/gem/wingem1.c
+noegnud_interface.o: $(WNOEGNUD)/noegnud_interface.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_interface.c
+noegnud_common.o: $(WNOEGNUD)/noegnud_common.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_common.c
+noegnud_glfuncs.o: $(WNOEGNUD)/noegnud_glfuncs.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_glfuncs.c
+noegnud_collection.o: $(WNOEGNUD)/noegnud_collection.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_collection.c
+noegnud_tilesets.o: $(WNOEGNUD)/noegnud_tilesets.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_tilesets.c
+noegnud_gui.o: $(WNOEGNUD)/noegnud_gui.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_gui.c
+noegnud_rip.o: $(WNOEGNUD)/noegnud_rip.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_rip.c
+noegnud_options.o: $(WNOEGNUD)/noegnud_options.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_options.c
+noegnud_typeloader.o: $(WNOEGNUD)/noegnud_typeloader.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_typeloader.c
+noegnud_fonts.o: $(WNOEGNUD)/noegnud_fonts.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_fonts.c
+noegnud_gff_tga.o: $(WNOEGNUD)/noegnud_gff_tga.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_gff_tga.c
+noegnud_render.o: $(WNOEGNUD)/noegnud_render.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_render.c
+noegnud_render_char.o: $(WNOEGNUD)/noegnud_render_char.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_render_char.c
+noegnud_render_tile.o: $(WNOEGNUD)/noegnud_render_tile.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_render_tile.c
+noegnud_render_3d.o: $(WNOEGNUD)/noegnud_render_3d.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_render_3d.c
+noegnud_lang.o: $(WNOEGNUD)/noegnud_lang.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_lang.c
+noegnud_debug.o: $(WNOEGNUD)/noegnud_debug.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_debug.c
+noegnud_mem.o: $(WNOEGNUD)/noegnud_mem.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_mem.c
+noegnud_reference.o: $(WNOEGNUD)/noegnud_reference.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_reference.c
+noegnud_textcolour.o: $(WNOEGNUD)/noegnud_textcolour.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_textcolour.c
+noegnud_textcolouring.o: $(WNOEGNUD)/noegnud_textcolouring.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_textcolouring.c
+noegnud_sound.o: $(WNOEGNUD)/noegnud_sound.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_sound.c
+noegnud_widgettheme.o: $(WNOEGNUD)/noegnud_widgettheme.c
+	$(CCOMPILE) -o$@ $(CFLAGS) -c $(WNOEGNUD)/noegnud_widgettheme.c
 load_img.o: ../win/gem/load_img.c $(INCL)/load_img.h
 	$(CCOMPILE) $(CFLAGS) -o$@ ../win/gem/load_img.c
 gr_rect.o: ../win/gem/gr_rect.c $(INCL)/gr_rect.h

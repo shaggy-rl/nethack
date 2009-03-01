@@ -50,7 +50,7 @@
  * Define all of those you want supported in your binary.
  * Some combinations make no sense.  See the installation document.
  */
-#define TTY_GRAPHICS		/* good old tty based graphics */
+/* #define TTY_GRAPHICS	*/	/* good old tty based graphics */
 /* #define X11_GRAPHICS */	/* X11 interface */
 /* #define QT_GRAPHICS */	/* Qt Interface */
 /* #define KDE */		/* KDE Interface */
@@ -60,6 +60,7 @@
 /* #define MSWIN_GRAPHICS */	/* Windows NT, CE, Graphics */
 /* #define GL_GRAPHICS */	/* OpenGL graphics */
 /* #define SDL_GRAPHICS */	/* Software SDL graphics */
+#define NOEGNUD_GRAPHICS
 
 /*
  * Define the default window system.  This should be one that is compiled
@@ -169,6 +170,13 @@
 # endif
 #endif
 
+#ifdef NOEGNUD_GRAPHICS
+# define DEFAULT_WINDOW_SYS "noegnud"
+# define USER_SOUNDS
+# define USER_SOUNDS_REGEX
+# define POSITIONBAR
+#endif
+
 #ifdef X11_GRAPHICS
 /*
  * There are two ways that X11 tiles may be defined.  (1) using a custom
@@ -249,7 +257,9 @@
  *	a tar-like file, thus making a neater installation.  See *conf.h
  *	for detailed configuration.
  */
-/* #define DLB */             /* not supported on all platforms */
+#ifndef DLB
+# define DLB             /* not supported on all platforms */
+#endif
 
 /*
  *	Defining INSURANCE slows down level changes, but allows games that

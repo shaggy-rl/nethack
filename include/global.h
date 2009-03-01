@@ -156,6 +156,13 @@ typedef xchar	boolean;		/* 0 or 1 */
 #define Getchar pgetchar
 #endif
 
+#if defined(USER_SOUNDS_REGEX)
+# if defined(__FreeBSD__) || defined(__OpenBSD__)
+#  define POSIX_REGEX
+# else
+#  define GNU_REGEX
+# endif
+#endif
 
 #include "coord.h"
 /*
@@ -269,8 +276,14 @@ typedef xchar	boolean;		/* 0 or 1 */
 # ifdef TOS
 #  define PORT_ID	"ST"
 # endif
+# ifdef NOEGNUD_GRAPHICS
+#  include "noegnudv.h"
+# endif
 # ifdef UNIX
 #  define PORT_ID	"Unix"
+#  ifdef NOEGNUD_GRAPHICS
+#   define PORT_SUB_ID  NOEGNUD_SUB_ID
+#  endif
 # endif
 # ifdef VMS
 #  define PORT_ID	"VMS"
@@ -281,7 +294,11 @@ typedef xchar	boolean;		/* 0 or 1 */
 #   if defined(MSWIN_GRAPHICS) || defined(GTK_GRAPHICS)
 #    define PORT_SUB_ID	"graphical"
 #   else
-#    define PORT_SUB_ID	"tty"
+#    ifdef NOEGNUD_GRAPHICS
+#     define PORT_SUB_ID  NOEGNUD_SUB_ID
+#    else
+#     define PORT_SUB_ID	"tty"
+#    endif
 #   endif
 #  endif
 # endif

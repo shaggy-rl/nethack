@@ -936,6 +936,9 @@ static const char *window_opts[] = {
 #ifdef BEOS_GRAPHICS
 		"BeOS InterfaceKit",
 #endif
+#ifdef NOEGNUD_GRAPHICS
+		"noegnud",
+#endif
 #ifdef PROXY_GRAPHICS
 		"Plug-in modules",
 #endif

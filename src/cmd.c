@@ -370,8 +370,9 @@ doborgtoggle()
 }
 #endif
 
-#if defined(TTY_GRAPHICS) || defined(GL_GRAPHICS) || defined(SDL_GRAPHICS)
-#define MAX_EXT_CMD 40		/* Change if we ever have > 40 ext cmds */
+#if defined(TTY_GRAPHICS) || defined(GL_GRAPHICS) || defined(SDL_GRAPHICS) || defined(NOEGNUD_GRAPHICS)
+/* Entro-P: wierd i had to raise this :D */
+#define MAX_EXT_CMD 45		/* Change if we ever have > 40 ext cmds */
 /*
  * This is currently used only by the tty port and is
  * controlled via runtime option 'extmenu'

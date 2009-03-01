@@ -14,20 +14,22 @@
 # MAKE = make
 
 # make NetHack
-PREFIX   = /usr
-GAME     = slashem
+PREFIX		= /usr/local/
+GAMEUI   	= noegnud
+GAMEVARIANT	= slashem
+GAME     	= $(GAMEUI)-$(GAMEVARIANT)
 # GAME     = slashem.prg
 GAMEUID  = games
 GAMEGRP  = bin
 
 # Permissions - some places use setgid instead of setuid, for instance
 # See also the option "SECURE" in include/config.h
-GAMEPERM = 04755
+GAMEPERM = 02755
 FILEPERM = 0644
 EXEPERM  = 0755
-DIRPERM  = 0755
-VARFILEPERM = 0644
-VARDIRPERM  = 0755
+DIRPERM  = 0775
+VARFILEPERM = 0664
+VARDIRPERM  = 0775
 
 # GAMEDIR also appears in config.h as "HACKDIR".
 # VARDIR may also appear in unixconf.h as "VAR_PLAYGROUND" else GAMEDIR
@@ -40,7 +42,7 @@ VARDIRPERM  = 0755
 # These must agree with the definitions in unixconf.h
 
 # Defs. for non file areas support.
-GAMEDIR  = $(PREFIX)/local/slashemdir
+GAMEDIR	= $(PREFIX)/lib/$(GAMEUI)/$(GAMEVARIANT)
 VARDIR = $(GAMEDIR)
 FILE_AREA_VAR = $(VARDIR)
 FILE_AREA_SAVE = $(VARDIR)/save
@@ -49,7 +51,7 @@ FILE_AREA_UNSHARE = $(GAMEDIR)
 FILE_AREA_DOC = $(GAMEDIR)
 FILE_AREA_BONES = $(FILE_AREA_VAR)
 FILE_AREA_LEVL = $(FILE_AREA_VAR)
-SHELLDIR = $(PREFIX)/local/bin
+SHELLDIR = $(PREFIX)/bin
 
 # Defs. compatible with Linux's FSSTND 1.2
 # FILE_AREA_VAR = /var/lib/games/slashem
@@ -292,11 +294,12 @@ dofiles:
 	cp util/recover $(FILE_AREA_UNSHARE)
 	cp dat/license doc/Guidebook.txt $(FILE_AREA_DOC)
 #	cp win/Qt/KDE/kslashem.kdelnk $(KDEDIR)/share/applnk/Games
-	-rm -f $(SHELLDIR)/$(GAME)
+	-rm -f $(SHELLDIR)/$(GAME) $(SHELLDIR)/$(GAME)
 	sed -e 's;/usr/games/lib/nethackdir;$(FILE_AREA_UNSHARE);' \
 		-e 's;HACKDIR/nethack;HACKDIR/$(GAME);' \
 		< sys/unix/nethack.sh \
 		> $(SHELLDIR)/$(GAME)
+	( cd .. ; cp -r build/data $(GAMEDIR)/.. )
 # set up their permissions
 	-( cd $(FILE_AREA_UNSHARE) ; $(CHOWN) $(GAMEUID) $(GAME) recover ; \
 			$(CHGRP) $(GAMEGRP) $(GAME) recover )

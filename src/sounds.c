@@ -1058,7 +1058,13 @@ extern void FDECL(play_usersound, (const char*, int));
 
 typedef struct audio_mapping_rec {
 #ifdef USER_SOUNDS_REGEX
+# ifdef GNU_REGEX
 	struct re_pattern_buffer regex;
+# else
+#  ifdef POSIX_REGEX
+    regex_t regex;
+#  endif
+# endif
 #else
 	char *pattern;
 #endif
@@ -1080,6 +1086,10 @@ const char *mapping;
 	char filename[256];
 	char filespec[256];
 	int volume;
+#ifdef POSIX_REGEX
+    int errnum;
+    char errbuf[80];
+#endif
 
 	if (sscanf(mapping, "MESG \"%255[^\"]\"%*[\t ]\"%255[^\"]\" %d",
 		   text, filename, &volume) == 3) {
@@ -1095,11 +1105,13 @@ const char *mapping;
 	    if (can_read_file(filespec)) {
 		new_map = (audio_mapping *)alloc(sizeof(audio_mapping));
 #ifdef USER_SOUNDS_REGEX
+# ifdef GNU_REGEX
 		new_map->regex.translate = 0;
 		new_map->regex.fastmap = 0;
 		new_map->regex.buffer = 0;
 		new_map->regex.allocated = 0;
 		new_map->regex.regs_allocated = REGS_FIXED;
+# endif
 #else
 		new_map->pattern = (char *)alloc(strlen(text) + 1);
 		Strcpy(new_map->pattern, text);
@@ -1109,7 +1121,18 @@ const char *mapping;
 		new_map->next = soundmap;
 
 #ifdef USER_SOUNDS_REGEX
+# ifdef GNU_REGEX
 		err = re_compile_pattern(text, strlen(text), &new_map->regex);
+# else
+#  ifdef POSIX_REGEX
+        errnum = regcomp(&new_map->regex, text, REG_EXTENDED | REG_NOSUB);
+        if (errnum != 0)
+        {
+            regerror(errnum, &new_map->regex, errbuf, sizeof(errbuf));
+            err = errbuf;
+        }
+#  endif
+# endif
 #else
 		err = 0;
 #endif
@@ -1142,7 +1165,12 @@ const char* msg;
 
 	while (cursor) {
 #ifdef USER_SOUNDS_REGEX
+# ifdef GNU_REGEX
 	    if (re_search(&cursor->regex, msg, strlen(msg), 0, 9999, 0) >= 0) {
+# endif
+# ifdef POSIX_REGEX
+        if (regexec(&cursor->regex, msg, 0, NULL, 0) == 0) {
+# endif
 #else
 	    if (pmatch(cursor->pattern, msg)) {
 #endif
