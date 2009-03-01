@@ -34,6 +34,89 @@ STATIC_DCL void NDECL(bot2);
 #define MAXCO (COLNO+20)
 #endif
 
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+
+extern const struct percent_color_option *hp_colors;
+extern const struct percent_color_option *pw_colors;
+extern const struct text_color_option *text_colors;
+
+struct color_option
+text_color_of(text, color_options)
+const char *text;
+const struct text_color_option *color_options;
+{
+	if (color_options == NULL) {
+		struct color_option result = {NO_COLOR, 0};
+		return result;
+	}
+	if (strstri(color_options->text, text)
+	 || strstri(text, color_options->text))
+		return color_options->color_option;
+	return text_color_of(text, color_options->next);
+}
+
+struct color_option
+percentage_color_of(value, max, color_options)
+int value, max;
+const struct percent_color_option *color_options;
+{
+	if (color_options == NULL) {
+		struct color_option result = {NO_COLOR, 0};
+		return result;
+	}
+	if (100 * value <= color_options->percentage * max)
+		return color_options->color_option;
+	return percentage_color_of(value, max, color_options->next);
+}
+
+void
+start_color_option(color_option)
+struct color_option color_option;
+{
+	int i;
+	if (color_option.color != NO_COLOR)
+		term_start_color(color_option.color);
+	for (i = 0; (1 << i) <= color_option.attr_bits; ++i)
+		if (i != ATR_NONE && color_option.attr_bits & (1 << i))
+			term_start_attr(i);
+}
+
+void
+end_color_option(color_option)
+struct color_option color_option;
+{
+	int i;
+	if (color_option.color != NO_COLOR)
+		term_end_color(color_option.color);
+	for (i = 0; (1 << i) <= color_option.attr_bits; ++i)
+		if (i != ATR_NONE && color_option.attr_bits & (1 << i))
+			term_end_attr(i);
+}
+
+void
+apply_color_option(color_option, str, x)
+struct color_option color_option;
+const char *str;
+int x;
+{
+	if (x >= CO) return;
+	curs(WIN_STATUS, x, 1);
+	if (iflags.use_status_colors) start_color_option(color_option);
+	putstr(WIN_STATUS, 0, str);
+	if (iflags.use_status_colors) end_color_option(color_option);
+}
+
+void
+add_colored_text(text, x)
+const char *text;
+int x;
+{
+	if (*text == '\0') return;
+	apply_color_option(text_color_of(text, text_colors), text, x);
+}
+
+#endif
+
 #ifndef OVLB
 STATIC_DCL int mrank_sz;
 #else /* OVLB */
@@ -71,13 +154,17 @@ rank_of(lev, monnum, female)
 	register struct Role *role;
 	register int i;
 
-
 	/* Find the role */
 	for (role = (struct Role *) roles; role->name.m; role++)
 	    if (monnum == role->malenum || monnum == role->femalenum)
 	    	break;
 	if (!role->name.m)
 	    role = &urole;
+
+	/* Gratuitous hack */
+	if (u.ualign.type == A_CHAOTIC && Role_if(PM_KNIGHT)) {
+		role = &urole;
+	}
 
 	/* Find the rank */
 	for (i = xlev_to_rank((int)lev); i >= 0; i--) {
@@ -165,10 +252,16 @@ botl_score()
 }
 #endif
 
+#ifdef DUMP_LOG
+void bot1str(char *newbot1)
+#else
 STATIC_OVL void
 bot1()
+#endif
 {
+#ifndef DUMP_LOG
 	char newbot1[MAXCO];
+#endif
 	register char *nb;
 	register int i,j;
 
@@ -215,11 +308,31 @@ bot1()
 	if (flags.showscore)
 	    Sprintf(nb = eos(nb), " S:%ld", botl_score());
 #endif
+#ifdef DUMP_LOG
+}
+STATIC_OVL void
+bot1()
+{
+	char newbot1[MAXCO];
+
+	bot1str(newbot1);
+#endif
 	curs(WIN_STATUS, 1, 0);
 	putstr(WIN_STATUS, 0, newbot1);
 }
 
 /* provide the name of the current level for display by various ports */
+const char* short_dgn_names[] = {
+	"Dungeons of Doom",
+	"Gehennom",
+	"Gnomish Mines",
+	"Quest Levels",	 /* Placeholder; this is overridden below */
+	"Sokoban",
+	"Fort Ludios",		 /* this too */
+	"Vlad's Tower",
+	"End Game"			 /* and this */
+};
+
 int
 describe_level(buf)
 char *buf;
@@ -236,64 +349,184 @@ char *buf;
 			Is_astralevel(&u.uz) ? "Astral Plane " : "End Game ");
 	else {
 		/* ports with more room may expand this one */
-		Sprintf(buf, "Dlvl:%-2d ", depth(&u.uz));
+		Sprintf(buf, "%s:%-2d ", 
+				iflags.show_dgn_name ? short_dgn_names[u.uz.dnum] : "Dlvl",
+				depth(&u.uz));
 		ret = 0;
 	}
 	return ret;
 }
 
+#ifdef DUMP_LOG
+void bot2str(newbot2)
+char* newbot2;
+#else
 STATIC_OVL void
 bot2()
+#endif
 {
+#ifndef DUMP_LOG
 	char  newbot2[MAXCO];
+#endif
 	register char *nb;
 	int hp, hpmax;
 	int cap = near_capacity();
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	struct color_option color_option;
+	int save_botlx = flags.botlx;
+#endif
+
+	int x = 1;
 
 	hp = Upolyd ? u.mh : u.uhp;
 	hpmax = Upolyd ? u.mhmax : u.uhpmax;
 
 	if(hp < 0) hp = 0;
 	(void) describe_level(newbot2);
-	Sprintf(nb = eos(newbot2),
-		"%c:%-2ld HP:%d(%d) Pw:%d(%d) AC:%-2d", oc_syms[COIN_CLASS],
+	Sprintf(nb = eos(newbot2), "%c:%-2ld", oc_syms[COIN_CLASS],
 #ifndef GOLDOBJ
-		u.ugold,
+		u.ugold
 #else
-		money_cnt(invent),
+		money_cnt(invent)
 #endif
-		hp, hpmax, u.uen, u.uenmax, u.uac);
+	       );
 
-	if (Upolyd)
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	Strcat(nb = eos(newbot2), " HP:");
+	curs(WIN_STATUS, x, 1);
+	putstr(WIN_STATUS, 0, newbot2);
+	x += strlen(newbot2);
+
+	Sprintf(nb = eos(nb), "%d(%d)", hp, hpmax);
+
+	apply_color_option(percentage_color_of(hp, hpmax, hp_colors), nb, x);
+	x += strlen(nb);
+#else
+	Sprintf(nb = eos(nb), " HP:%d(%d)", hp, hpmax);
+#endif
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	Strcat(nb = eos(nb), " Pw:");
+	curs(WIN_STATUS, x, 1);
+	putstr(WIN_STATUS, 0, nb);
+
+	x += strlen(nb);
+
+	Sprintf(nb = eos(nb), "%d(%d)", u.uen, u.uenmax);
+	apply_color_option(percentage_color_of(u.uen, u.uenmax, pw_colors), nb, x);
+	x += strlen(nb);
+#else
+	Sprintf(nb = eos(nb), " Pw:%d(%d)", u.uen, u.uenmax);
+#endif
+	Sprintf(nb = eos(nb), " AC:%-2d", u.uac);
+	curs(WIN_STATUS, x, 1);
+	putstr(WIN_STATUS, 0, nb);
+	x += strlen(nb);
+	if (Upolyd) {
 		Sprintf(nb = eos(nb), " HD:%d", mons[u.umonnum].mlevel);
+		curs(WIN_STATUS, x, 1);
+		putstr(WIN_STATUS, 0, nb);
+		x += strlen(nb);
+	}
 #ifdef EXP_ON_BOTL
-	else if(flags.showexp)
+	else if(flags.showexp) {
 		Sprintf(nb = eos(nb), " Xp:%u/%-1ld", u.ulevel,u.uexp);
+		curs(WIN_STATUS, x, 1);
+		putstr(WIN_STATUS, 0, nb);
+		x += strlen(nb);
+	}
 #endif
-	else
+	else {
 		Sprintf(nb = eos(nb), " Exp:%u", u.ulevel);
-
-	if(flags.time)
+		curs(WIN_STATUS, x, 1);
+		putstr(WIN_STATUS, 0, nb);
+		x += strlen(nb);
+	}
+	if(flags.time) {
 	    Sprintf(nb = eos(nb), " T:%ld", moves);
+	    curs(WIN_STATUS, x, 1);
+	    putstr(WIN_STATUS, 0, nb);
+	    x += strlen(nb);
+	}
+	x++;
 	if(strcmp(hu_stat[u.uhs], "        ")) {
-		Sprintf(nb = eos(nb), " ");
-		Strcat(newbot2, hu_stat[u.uhs]);
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text(hu_stat[u.uhs], x);
+#endif
+	    Sprintf(nb = eos(nb), " %s", hu_stat[u.uhs]);
+	    x += strlen(nb);
 	}
-	if(Confusion)	   Sprintf(nb = eos(nb), " Conf");
+ 	if(Confusion) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text("Conf", x);
+#endif
+	    Strcat(nb = eos(nb), " Conf");
+	    x += strlen(nb);
+	}
 	if(Sick) {
-		if (u.usick_type & SICK_VOMITABLE)
-			   Sprintf(nb = eos(nb), " FoodPois");
-		if (u.usick_type & SICK_NONVOMITABLE)
-			   Sprintf(nb = eos(nb), " Ill");
+	    if (u.usick_type & SICK_VOMITABLE) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+		add_colored_text("FoodPois", x);
+#endif
+		Strcat(nb = eos(nb), " FoodPois");
+		x += strlen(nb);
 	}
-	if(Blind)	   Sprintf(nb = eos(nb), " Blind");
-	if(Stunned)	   Sprintf(nb = eos(nb), " Stun");
-	if(Hallucination)  Sprintf(nb = eos(nb), " Hallu");
-	if(Slimed)         Sprintf(nb = eos(nb), " Slime");
-	if(cap > UNENCUMBERED)
+	    if (u.usick_type & SICK_NONVOMITABLE) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+		add_colored_text("Ill", x);
+#endif
+		Strcat(nb = eos(nb), " Ill");
+		x += strlen(nb);
+	    }
+	}
+	if(Slow) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text("Slow", x);
+#endif
+	    Strcat(nb = eos(nb)," Slow");
+	    x += strlen(nb);
+	}
+	if(Blind) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text("Blind", x);
+#endif
+	    Strcat(nb = eos(nb), " Blind");
+	    x += strlen(nb);
+	}
+	if(Stunned) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text("Stun", x);
+#endif
+	    Strcat(nb = eos(nb), " Stun");
+	    x += strlen(nb);
+	}
+	if(Slimed) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text("Slime", x);
+#endif
+	    Strcat(nb = eos(nb), " Slime");
+	    x += strlen(nb);
+	}
+	if(cap > UNENCUMBERED) {
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+	    add_colored_text(enc_stat[cap], x);
+	    flags.botlx = save_botlx;
+#endif
 		Sprintf(nb = eos(nb), " %s", enc_stat[cap]);
+	    x += strlen(nb);
+	}
+#ifdef DUMP_LOG
+}
+STATIC_OVL void
+bot2()
+{
+	char newbot2[MAXCO];
+	bot2str(newbot2);
+#endif
+#if defined(STATUS_COLORS) && defined(TEXTCOLOR)
+#else
 	curs(WIN_STATUS, 1, 1);
 	putstr(WIN_STATUS, 0, newbot2);
+#endif
 }
 
 void

@@ -10,6 +10,7 @@
 extern char *lev_message;
 extern lev_region *lregions;
 extern int num_lregions;
+extern char SpLev_Map[COLNO][ROWNO];
 
 STATIC_DCL boolean FDECL(iswall,(int,int));
 STATIC_DCL boolean FDECL(iswall_or_stone,(int,int));
@@ -124,19 +125,6 @@ int x1, y1, x2, y2;
 	uchar type;
 	register int x,y;
 	struct rm *lev;
-	int bits;
-	int locale[3][3];	/* rock or wall status surrounding positions */
-	/*
-	 * Value 0 represents a free-standing wall.  It could be anything,
-	 * so even though this table says VWALL, we actually leave whatever
-	 * typ was there alone.
-	 */
-	static xchar spine_array[16] = {
-	    VWALL,	HWALL,		HWALL,		HWALL,
-	    VWALL,	TRCORNER,	TLCORNER,	TDWALL,
-	    VWALL,	BRCORNER,	BLCORNER,	TUWALL,
-	    VWALL,	TLWALL,		TRWALL,		CROSSWALL
-	};
 
 	/* sanity check on incoming variables */
 	if (x1<0 || x2>=COLNO || x1>x2 || y1<0 || y2>=ROWNO || y1>y2)
@@ -160,11 +148,35 @@ int x1, y1, x2, y2;
 		}
 	    }
 
+	wall_extends(x1,y1,x2,y2);
+}
+
+void
+wall_extends(x1, y1, x2, y2)
+int x1, y1, x2, y2;
+{
+	uchar type;
+	register int x,y;
+	struct rm *lev;
+	int bits;
+	int locale[3][3];	/* rock or wall status surrounding positions */
+
 	/*
-	 * Step 2: set the correct wall type.  We can't combine steps
-	 * 1 and 2 into a single sweep because we depend on knowing if
-	 * the surrounding positions are stone.
+	 * Value 0 represents a free-standing wall.  It could be anything,
+	 * so even though this table says VWALL, we actually leave whatever
+	 * typ was there alone.
 	 */
+	static xchar spine_array[16] = {
+	    VWALL,	HWALL,		HWALL,		HWALL,
+	    VWALL,	TRCORNER,	TLCORNER,	TDWALL,
+	    VWALL,	BRCORNER,	BLCORNER,	TUWALL,
+	    VWALL,	TLWALL,		TRWALL,		CROSSWALL
+	};
+
+	/* sanity check on incoming variables */
+	if (x1<0 || x2>=COLNO || x1>x2 || y1<0 || y2>=ROWNO || y1>y2)
+	    panic("wall_extends: bad bounds (%d,%d) to (%d,%d)",x1,y1,x2,y2);
+
 	for(x = x1; x <= x2; x++)
 	    for(y = y1; y <= y2; y++) {
 		lev = &levl[x][y];
@@ -681,6 +693,7 @@ int x,y;
 		    levl[x][y].typ = ROOM;
 #endif
 		    levl[x][y].flags = 0;
+		    SpLev_Map[x][y] = 1;
 		}
 		q = 0;
 		for (a = 0; a < 4; a++)
@@ -695,7 +708,9 @@ int x,y;
 #else
 			levl[x][y].typ = ROOM;
 #endif
+			SpLev_Map[x][y] = 1;
 			move(&x, &y, dir);
+			SpLev_Map[x][y] = 1;
 			pos++;
 			if (pos > CELLS)
 				panic("Overflow in walkfrom");
@@ -721,6 +736,7 @@ int x,y;
 	    levl[x][y].typ = ROOM;
 #endif
 	    levl[x][y].flags = 0;
+	    SpLev_Map[x][y] = 1;
 	}
 
 	while(1) {
@@ -735,7 +751,9 @@ int x,y;
 #else
 		levl[x][y].typ = ROOM;
 #endif
+		SpLev_Map[x][y] = 1;
 		move(&x,&y,dir);
+		SpLev_Map[x][y] = 1;
 		walkfrom(x,y);
 	}
 }
