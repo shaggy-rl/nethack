@@ -42,17 +42,18 @@
  * Define all of those you want supported in your binary.
  * Some combinations make no sense.  See the installation document.
  */
-#define TTY_GRAPHICS	/* good old tty based graphics */
+/* #define TTY_GRAPHICS	*/	/* good old tty based graphics */
 /* #define X11_GRAPHICS */	/* X11 interface */
 /* #define QT_GRAPHICS */	/* Qt interface */
 /* #define GNOME_GRAPHICS */	/* Gnome interface */
 /* #define MSWIN_GRAPHICS */	/* Windows NT, CE, Graphics */
+#define NOEGNUD_GRAPHICS	/* noeGNUd interface */
 
 /*
  * Define the default window system.  This should be one that is compiled
  * into your system (see defines above).  Known window systems are:
  *
- *	tty, X11, mac, amii, BeOS, Qt, Gem, Gnome
+ *	tty, X11, mac, amii, BeOS, Qt, Gem, Gnome, noeGNUd
  */
 
 /* MAC also means MAC windows */
@@ -113,6 +114,13 @@
 # define HACKDIR "\\nethack"
 #endif
 
+#ifdef NOEGNUD_GRAPHICS
+# define DEFAULT_WINDOW_SYS "noegnud"
+# define USER_SOUNDS
+# define USER_SOUNDS_REGEX
+# define POSITIONBAR
+#endif
+
 #ifndef DEFAULT_WINDOW_SYS
 # define DEFAULT_WINDOW_SYS "tty"
 #endif
@@ -143,10 +151,10 @@
 
 #ifndef WIZARD		/* allow for compile-time or Makefile changes */
 # ifndef KR1ED
-#  define WIZARD  "derek" /* the person allowed to use the -D option */
+#  define WIZARD  "wizard" /* the person allowed to use the -D option */
 # else
 #  define WIZARD
-#  define WIZARD_NAME "derek"
+#  define WIZARD_NAME "wizard"
 # endif
 #endif
 
@@ -171,11 +179,11 @@
 
 #ifdef UNIX
 /* path and file name extension for compression program */
-/* #define COMPRESS "/usr/bin/compress"	 Lempel-Ziv compression */
-/* #define COMPRESS_EXTENSION ".Z"	 compress's extension */
+/* #define COMPRESS "/usr/bin/compress"	*/	/* Lempel-Ziv compression */
+/* #define COMPRESS_EXTENSION ".Z" */		/* compress's extension */
 /* An example of one alternative you might want to use: */
-#define COMPRESS "/usr/bin/gzip" /* FSF gzip compression */
-#define COMPRESS_EXTENSION ".gz" 	/* normal gzip extension */
+#define COMPRESS "/usr/bin/gzip"		/* FSF gzip compression */
+#define COMPRESS_EXTENSION ".gz"  		/* normal gzip extension */
 #endif
 
 #ifndef COMPRESS
@@ -187,7 +195,9 @@
  *	a tar-like file, thus making a neater installation.  See *conf.h
  *	for detailed configuration.
  */
-#define DLB /* not supported on all platforms */
+#ifndef DLB
+# define DLB 	/* not supported on all platforms */
+#endif
 
 /*
  *	Defining INSURANCE slows down level changes, but allows games that
@@ -216,7 +226,7 @@
  * since the user might create files in a directory of his choice.
  * Of course SECURE is meaningful only if HACKDIR is defined.
  */
-#define SECURE 	/* do setuid(getuid()) after chdir() */
+/* #define SECURE */	/* do setuid(getuid()) after chdir() */
 
 /*
  * If it is desirable to limit the number of people that can play Hack
@@ -302,7 +312,7 @@ typedef unsigned char	uchar;
  * functions that have been macroized.
  */
 
-#define VISION_TABLES /* use vision tables generated at compile time */
+#define VISION_TABLES	/* use vision tables generated at compile time */
 #ifndef VISION_TABLES
 # ifndef NO_MACRO_CPATH
 #  define MACRO_CPATH	/* use clear_path macros instead of functions */
@@ -341,7 +351,7 @@ typedef unsigned char	uchar;
 #endif
 
 #define EXP_ON_BOTL	/* Show experience on bottom line */
-#define SCORE_ON_BOTL /* added by Gary Erickson (erickson@ucivax) */
+/* #define SCORE_ON_BOTL */	/* added by Gary Erickson (erickson@ucivax) */
 
 /*
  * Section 5:  EXPERIMENTAL STUFF

@@ -179,7 +179,7 @@ struct instance_flags {
 	boolean  sanity_check;	/* run sanity checks */
 	boolean  mon_polycontrol;	/* debug: control monster polymorphs */
 #endif
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(NOEGNUD_GRAPHICS)
 	char prevmsg_window;	/* type of old message window to use */
 	boolean  extmenu;	/* extended commands use menu interface */
 #endif

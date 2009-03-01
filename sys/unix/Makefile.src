@@ -124,8 +124,16 @@ SYSOBJ = ioctl.o unixmain.o unixtty.o unixunix.o unixres.o
 
 # flags for Linux
 #   compile normally
-# CFLAGS = -O2 -fomit-frame-pointer -I../include
-# LFLAGS = -L/usr/X11R6/lib
+
+COMMON_CFLAGS = -I../include -I../win/noegnud
+
+STD_CFLAGS = -O2 -ffast-math $(COMMON_CFLAGS)
+DBG_CFLAGS = -g -Wall -DNOEGNUDDEBUG $(COMMON_CFLAGS)
+
+CFLAGS = $(STD_CFLAGS)
+
+LFLAGS = -L/usr/X11R6/lib
+
 #   OR compile backwards compatible a.out format
 # CFLAGS = -O2 -b i486-linuxaout -fomit-frame-pointer -I../include
 # LFLAGS = -b i486-linuxaout -L/usr/X11R6/lib
@@ -151,8 +159,8 @@ GNOMEINC=-I/usr/lib/glib/include -I/usr/lib/gnome-libs/include -I../win/gnome
 # flags for debugging:
 # CFLAGS = -g -I../include
 
-CFLAGS = -O -I../include
-LFLAGS = 
+# CFLAGS = -O -I../include
+# LFLAGS = 
 
 # The Qt and Be window systems are written in C++, while the rest of
 # NetHack is standard C.  If using Qt, uncomment the LINK line here to get
@@ -212,10 +220,66 @@ WINBEOBJ =
 #	../win/BeOS/NHMenuWindow.cpp ../win/BeOS/NHMapWindow.cpp tile.c
 #WINBEOBJ = winbe.o NHWindow.o NHMenuWindow.o NHMapWindow.o tile.o
 
+# Files for Entro-P's OpenGL 3D interface :: noeGNUd
+
+WINNOEGNUDCFLAGS = $(CFLAGS) -DNETHACK -fomit-frame-pointer `sdl-config --cflags` -I/usr/X11R6/include -I/usr/include/gnu
+WINNOEGNUDLIB = `sdl-config --libs` -lSDL_image -lSDL_mixer -lGL -lGLU
+
+NOEGNUD = ../win/noegnud/noegnud
+
+WINNOEGNUDSRC = $(NOEGNUD)_interface.c \
+		$(NOEGNUD)_common.c \
+		$(NOEGNUD)_glfuncs.c \
+		$(NOEGNUD)_collection.c \
+		$(NOEGNUD)_tilesets.c \
+		$(NOEGNUD)_gui.c \
+		$(NOEGNUD)_rip.c \
+		$(NOEGNUD)_options.c \
+		$(NOEGNUD)_typeloader.c \
+		$(NOEGNUD)_fonts.c \
+		$(NOEGNUD)_gff_tga.c \
+		$(NOEGNUD)_render.c \
+		$(NOEGNUD)_render_char.c \
+		$(NOEGNUD)_render_tile.c \
+		$(NOEGNUD)_render_3d.c \
+		$(NOEGNUD)_lang.c \
+		$(NOEGNUD)_debug.c \
+		$(NOEGNUD)_mem.c \
+		$(NOEGNUD)_reference.c \
+		$(NOEGNUD)_textcolour.c \
+		$(NOEGNUD)_textcolouring.c \
+		$(NOEGNUD)_sound.c \
+		$(NOEGNUD)_widgettheme.c \
+		tile.c
+WINNOEGNUDOBJ = noegnud_interface.o \
+		noegnud_common.o \
+		noegnud_glfuncs.o \
+		noegnud_collection.o \
+		noegnud_tilesets.o \
+		noegnud_gui.o \
+		noegnud_rip.o \
+		noegnud_options.o \
+		noegnud_typeloader.o \
+		noegnud_fonts.o \
+		noegnud_gff_tga.o \
+		noegnud_render.o \
+		noegnud_render_char.o \
+		noegnud_render_tile.o \
+		noegnud_render_3d.o \
+		noegnud_lang.o \
+		noegnud_debug.o \
+		noegnud_mem.o \
+		noegnud_reference.o \
+		noegnud_textcolour.o \
+		noegnud_textcolouring.o \
+		noegnud_sound.o \
+		noegnud_widgettheme.o \
+		tile.o
+
 #
 #
-WINSRC = $(WINTTYSRC)
-WINOBJ = $(WINTTYOBJ)
+WINSRC = $(WINNOEGNUDSRC)
+WINOBJ = $(WINNOEGNUDOBJ)
 
 # on some systems the termcap library is in -ltermcap or -lcurses
 # on 386 Xenix, the -ltermlib tputs() seems not to work; use -lcurses instead
@@ -231,8 +295,8 @@ WINOBJ = $(WINTTYOBJ)
 # WINTTYLIB = -ltermcap
 # WINTTYLIB = -lcurses
 # WINTTYLIB = -lcurses16
-# WINTTYLIB = -lncurses
-WINTTYLIB = -ltermlib
+WINTTYLIB = -lncurses
+# WINTTYLIB = -ltermlib
 #
 # libraries for X11
 # If USE_XPM is defined in config.h, you will also need -lXpm here.
@@ -256,7 +320,7 @@ WINGEMLIB = -le_gem -lgem
 # libraries for BeOS 
 WINBELIB = -lbe
 
-WINLIB = $(WINTTYLIB)
+WINLIB = $(WINTTYLIB) $(WINNOEGNUDLIB)
 
 # any other strange libraries your system needs (for Sysunix only -- the more
 # specialized targets should already be right)
@@ -286,7 +350,7 @@ WINLIB = $(WINTTYLIB)
 LIBS =
 
 # make NetHack
-GAME     = nethack
+GAME     = noegnud-nethack
 # GAME     = nethack.prg
 
 # if you defined RANDOM in unixconf.h/tosconf.h since your system did not come
@@ -339,7 +403,7 @@ SYSCSRC = ../sys/atari/tos.c ../sys/share/pcmain.c ../sys/share/pcsys.c \
 GENCSRC = monstr.c vis_tab.c	#tile.c
 
 # all windowing-system-dependent .c (for dependencies and such)
-WINCSRC = $(WINTTYSRC) $(WINX11SRC) $(WINGNOMESRC) $(WINGEMSRC)
+WINCSRC = $(WINTTYSRC) $(WINX11SRC) $(WINGNOMESRC) $(WINGEMSRC) $(WINNOEGNUDSRC)
 # all windowing-system-dependent .cpp (for dependencies and such)
 WINCXXSRC = $(WINQTSRC) $(WINBESRC)
 
@@ -362,7 +426,7 @@ HACKINCL = align.h amiconf.h artifact.h artilist.h attrib.h beconf.h color.h \
 	os2conf.h patchlevel.h pcconf.h permonst.h prop.h rect.h region.h rm.h \
 	sp_lev.h spell.h system.h tcap.h timeout.h tosconf.h tradstdc.h \
 	trampoli.h trap.h unixconf.h vault.h vision.h vmsconf.h wintty.h \
-	winX.h winprocs.h wintype.h you.h youprop.h
+	winX.h winprocs.h wintype.h you.h youprop.h noegnudv.h
 
 HSOURCES = $(HACKINCL) date.h onames.h pm.h vis_tab.h\
 		lev_comp.h dgn_comp.h dgn_file.h
@@ -680,6 +744,52 @@ wingem.o: ../win/gem/wingem.c $(HACK_H) ../include/func_tab.h ../include/dlb.h \
 wingem1.o: ../win/gem/wingem1.c ../include/gem_rsc.h ../include/load_img.h \
 		../include/gr_rect.h ../include/wintype.h ../include/wingem.h
 	$(CC) $(CFLAGS) -c ../win/gem/wingem1.c
+noegnud_interface.o: $(NOEGNUD)_interface.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_interface.c
+noegnud_common.o: $(NOEGNUD)_common.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_common.c
+noegnud_glfuncs.o: $(NOEGNUD)_glfuncs.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_glfuncs.c
+noegnud_collection.o: $(NOEGNUD)_collection.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_collection.c
+noegnud_tilesets.o: $(NOEGNUD)_tilesets.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_tilesets.c
+noegnud_gui.o: $(NOEGNUD)_gui.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_gui.c
+noegnud_rip.o: $(NOEGNUD)_rip.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_rip.c
+noegnud_options.o: $(NOEGNUD)_options.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_options.c
+noegnud_typeloader.o: $(NOEGNUD)_typeloader.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_typeloader.c
+noegnud_fonts.o: $(NOEGNUD)_fonts.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_fonts.c
+noegnud_gff_tga.o: $(NOEGNUD)_gff_tga.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_gff_tga.c
+noegnud_render.o: $(NOEGNUD)_render.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_render.c
+noegnud_render_char.o: $(NOEGNUD)_render_char.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_render_char.c
+noegnud_render_tile.o: $(NOEGNUD)_render_tile.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_render_tile.c
+noegnud_render_3d.o: $(NOEGNUD)_render_3d.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_render_3d.c
+noegnud_lang.o: $(NOEGNUD)_lang.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_lang.c
+noegnud_debug.o: $(NOEGNUD)_debug.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_debug.c
+noegnud_mem.o: $(NOEGNUD)_mem.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_mem.c
+noegnud_reference.o: $(NOEGNUD)_reference.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_reference.c
+noegnud_textcolour.o: $(NOEGNUD)_textcolour.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_textcolour.c
+noegnud_textcolouring.o: $(NOEGNUD)_textcolouring.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_textcolouring.c
+noegnud_sound.o: $(NOEGNUD)_sound.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_sound.c
+noegnud_widgettheme.o: $(NOEGNUD)_widgettheme.c
+	$(CC) $(WINNOEGNUDCFLAGS) -c $(NOEGNUD)_widgettheme.c
 load_img.o: ../win/gem/load_img.c ../include/load_img.h
 	$(CC) $(CFLAGS) -c ../win/gem/load_img.c
 gr_rect.o: ../win/gem/gr_rect.c ../include/gr_rect.h
