@@ -19,8 +19,12 @@ int explcolors[] = {
 	CLR_WHITE,	/* frosty  */
 };
 
-#if !defined(TTY_GRAPHICS)
-#define has_color(n)  TRUE
+#ifndef NOEGNUD_GRAPHICS
+# if !defined(TTY_GRAPHICS)
+#  define has_color(n)  TRUE
+# endif
+#else
+# define has_color(n)  TRUE
 #endif
 
 #ifdef TEXTCOLOR

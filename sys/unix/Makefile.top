@@ -14,18 +14,20 @@
 # MAKE = make
 
 # make NetHack
-PREFIX	 = /usr
-GAME     = nethack
+PREFIX	 	= /usr/local
+GAMEUI   	= noegnud
+GAMEVARIANT	= nethack
+GAME     	= $(GAMEUI)-$(GAMEVARIANT)
 # GAME     = nethack.prg
 GAMEUID  = games
 GAMEGRP  = bin
 
 # Permissions - some places use setgid instead of setuid, for instance
 # See also the option "SECURE" in include/config.h
-GAMEPERM = 04755
-FILEPERM = 0644
-EXEPERM  = 0755
-DIRPERM  = 0755
+GAMEPERM = 02755
+FILEPERM = 0664
+EXEPERM  = 0775
+DIRPERM  = 0775
 
 # GAMEDIR also appears in config.h as "HACKDIR".
 # VARDIR may also appear in unixconf.h as "VAR_PLAYGROUND" else GAMEDIR
@@ -35,9 +37,9 @@ DIRPERM  = 0755
 # therefore there should not be anything in GAMEDIR that you want to keep
 # (if there is, you'll have to do the installation by hand or modify the
 # instructions)
-GAMEDIR  = $(PREFIX)/games/lib/$(GAME)dir
-VARDIR  = $(GAMEDIR)
-SHELLDIR = $(PREFIX)/games
+GAMEDIR		= $(PREFIX)/lib/$(GAMEUI)/$(GAMEVARIANT)
+VARDIR		= $(GAMEDIR)
+SHELLDIR	= $(PREFIX)/bin
 
 # per discussion in Install.X11 and Install.Qt
 VARDATND = 
@@ -185,11 +187,12 @@ dofiles:
 	$(MAKE) dofiles-$${target-nodlb}
 	cp src/$(GAME) $(GAMEDIR)
 	cp util/recover $(GAMEDIR)
-	-rm -f $(SHELLDIR)/$(GAME)
+	-rm -f $(SHELLDIR)/$(GAME) $(SHELLDIR)/$(GAME)
 	sed -e 's;/usr/games/lib/nethackdir;$(GAMEDIR);' \
 		-e 's;HACKDIR/nethack;HACKDIR/$(GAME);' \
 		< sys/unix/nethack.sh \
 		> $(SHELLDIR)/$(GAME)
+	( cd .. ; cp -r build/data $(GAMEDIR)/.. )
 # set up their permissions
 	-( cd $(GAMEDIR) ; $(CHOWN) $(GAMEUID) $(GAME) recover ; \
 			$(CHGRP) $(GAMEGRP) $(GAME) recover )

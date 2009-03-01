@@ -806,6 +806,9 @@ static const char *window_opts[] = {
 #ifdef BEOS_GRAPHICS
 		"BeOS InterfaceKit",
 #endif
+#ifdef NOEGNUD_GRAPHICS
+		"noeGNUd",
+#endif
 		0
 	};
 

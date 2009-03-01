@@ -34,26 +34,31 @@
 # Set to Y for a graphical version
 # Set to anything else (or undefine) for a tty version
 
-#GRAPHICAL = Y
+GRAPHICAL = N
+MINGW = /mingw
+GNUWIN32 = $(MINGW)/GnuWin32/gnuwin32/
+MSYS = /msys/1.0/local
+SDLCFLAGS = -I$(GNUWIN32)/include -I$(MSYS)/include -I$(MINGW)/include -I$(MINGW)/include/SDL -I$(GNUWIN32)/include/SDL -I$(MSYS)/include/SDL
+SDLLIBS = -L$(GNUWIN32)/lib -L$(MSYS)/lib -L$(MINGW)/lib -lmingw32 -lSDLmain -lSDL_image -lpng -lSDL_mixer -lSDL_ttf -lfreetype -lSDL -mwindows
 
 # Debug
 # Set to Y for Debug support (to produce debug information)
 # Set to anything else (or undefine) for a "release" version
 # You can set your debug options below.
 
-DEBUG = Y
+DEBUG = N
 
 cc     = gcc
 rc     = windres
 link   = gcc
 
-cflags = -mms-bitfields
-lflags  =
+cflags = -mms-bitfields $(SDLCFLAGS) -DNETHACK
+lflags  = -O2
 ifeq  "$(DEBUG)" "Y"
-cdebug = -g
+cdebug = -g -DNOEGNUDDEBUG
 linkdebug = -g
 else
-cdebug =
+cdebug = -O2
 linkdebug =
 endif
 
@@ -66,7 +71,7 @@ ifeq  "$(GRAPHICAL)" "Y"
 GAME    = NetHackW
 else
 # Game Name
-GAME    = NetHack
+GAME    = noegnud-NetHack
 endif
 # Game directory
 GAMEDIR = ../binary
@@ -93,6 +98,8 @@ NTSYS = ../sys/winnt
 TTY   = ../win/tty
 # window port files (Win32)
 WIN32 = ../win/win32
+# noegnud port files (noegnud)
+NOEGNUDDIR = ../win/noegnud
 # Tile support files
 WSHR  = ../win/share
 
@@ -172,12 +179,45 @@ WINPHDR = $(WIN32)/mhaskyn.h $(WIN32)/mhdlg.h $(WIN32)/mhfont.h \
 	$(WIN32)/mhtext.h $(WIN32)/resource.h $(WIN32)/winMS.h
 WINPLIBS =  -lcomctl32 -lwinmm
 else
-WINPORT = $(O)nttty.o
-WINPFLAG= -DWIN32CON
+#WINPORT = $(O)nttty.o
+#WINPFLAG= -DWIN32CON
+#WINPHDR =
+#NHRES   = $(O)console.o
+#WINPINC =
+#WINPLIBS = -lwinmm
+
+NOEGNUD = $(O)noegnud
+WINPORT = $(NOEGNUD)_interface.o \
+		$(NOEGNUD)_common.o \
+		$(NOEGNUD)_glfuncs.o \
+		$(NOEGNUD)_collection.o \
+		$(NOEGNUD)_tilesets.o \
+		$(NOEGNUD)_gui.o \
+		$(NOEGNUD)_rip.o \
+		$(NOEGNUD)_options.o \
+		$(NOEGNUD)_typeloader.o \
+		$(NOEGNUD)_fonts.o \
+		$(NOEGNUD)_gff_tga.o \
+		$(NOEGNUD)_render.o \
+		$(NOEGNUD)_render_char.o \
+		$(NOEGNUD)_render_tile.o \
+		$(NOEGNUD)_render_3d.o \
+		$(NOEGNUD)_lang.o \
+		$(NOEGNUD)_debug.o \
+		$(NOEGNUD)_mem.o \
+		$(NOEGNUD)_reference.o \
+		$(NOEGNUD)_textcolour.o \
+		$(NOEGNUD)_textcolouring.o \
+		$(NOEGNUD)_sound.o \
+		$(NOEGNUD)_widgettheme.o \
+		$(O)tile.o
+WINNOEGNUDCFLAGS=$(CFLAGS)
+WINPFLAG=-DTILES
 WINPHDR =
 NHRES   = $(O)console.o
 WINPINC =
-WINPLIBS = -lwinmm
+WINPLIBS = -lwinmm $(SDLLIBS) -lopengl32 -lglu32 -lregex
+
 endif
 
 TILEUTIL16  = $(UTIL)/tile2bmp.exe
@@ -186,9 +226,8 @@ TILEBMP16   = $(SRC)/tiles.bmp
 TILEUTIL32  = $(UTIL)/til2bm32.exe
 TILEBMP32   = $(SRC)/tiles32.bmp
 
-SOUND = $(OBJ)/ntsound.o
-
-#SOUND =
+#SOUND = $(OBJ)/ntsound.o
+SOUND =
 
 # To store all the level files,
 # help files, etc. in a single library file.
@@ -207,9 +246,9 @@ endif
 # macros. All builds include the base ones.
 #==========================================
 
-CFLAGSBASE  = -c $(cflags) -I$(INCL) $(WINPINC) $(cdebug)
-LFLAGSBASEC = $(linkdebug)
-LFLAGSBASEG = $(linkdebug) -mwindows
+CFLAGSBASE  = -c -I$(INCL) $(cflags) -I$(NOEGNUDDIR) $(WINPINC) $(cdebug)
+LFLAGSBASEC = $(linkdebug) 
+LFLAGSBASEG = $(linkdebug) 
 
 #==========================================
 # Util builds
@@ -304,6 +343,13 @@ $(OBJ)/%.o : $(TTY)/%.c
 
 $(OBJ)/%.o : $(WIN32)/%.c
 	$(cc) $(CFLAGS)  -o$@  $<
+
+#==========================================
+# Rules for files in win/noegnud
+#==========================================
+
+$(O)/%.o : $(NOEGNUDDIR)/%.c
+	@$(cc) $(CFLAGS)  -o$@  $<
 
 #==========================================
 #================ MACROS ==================
@@ -568,8 +614,8 @@ $(NHRES): $(TILEBMP16) $(WIN32)/winhack.rc $(WIN32)/mnsel.bmp \
 	 $(WIN32)/splash.bmp
 	@$(rc) -o$@ --include-dir $(WIN32) -i $(WIN32)/winhack.rc
 else
-$(NHRES): $(NTSYS)/console.rc $(NTSYS)/NetHack.ico 
-	@$(rc) -o$@ --include-dir $(NTSYS) -i $(NTSYS)/console.rc
+$(NHRES): $(NOEGNUDDIR)/nethack.rc $(NTSYS)/NetHack.ico 
+	@$(rc) -o$@ --include-dir $(NTSYS) -i $(NOEGNUDDIR)/nethack.rc
 endif
 
 #==========================================
@@ -583,8 +629,9 @@ $(O)gamedir.tag:
 ifeq  "$(GRAPHICAL)" "Y"
 $(GAMEFILE) : $(ALLOBJ) $(NHRES) $(O)gamedir.tag
 else
-$(GAMEFILE) : $(ALLOBJ) $(NHRES) $(O)gamedir.tag \
-	 $(GAMEDIR)/nhdefkey.dll $(GAMEDIR)/nh340key.dll $(GAMEDIR)/nhraykey.dll
+$(GAMEFILE) : $(ALLOBJ) $(NHRES) $(O)gamedir.tag
+#$(GAMEFILE) : $(ALLOBJ) $(NHRES) $(O)gamedir.tag \
+#	 $(GAMEDIR)/nhdefkey.dll $(GAMEDIR)/nh340key.dll $(GAMEDIR)/nhraykey.dll
 endif
 	@echo Linking....
 	@$(link) $(lflags) -o$@ $(ALLOBJ) $(NHRES) $(WINPLIBS)
@@ -727,7 +774,7 @@ $(WIN32)/splash.bmp: $(U)uudecode.exe $(WIN32)/splash.uu
 # Level Compiler Stuff
 #==========================================
 
-LEVCFLAGS=$(cflags) -c -DWIN32 -D_WIN32 -I../include $(cdebug) -DDLB
+LEVCFLAGS=$(cflags) -c -DWIN32 -D_WIN32 -I../include -I$(NOEGNUDDIR) $(cdebug) -DDLB
 
 $(U)lev_comp.exe: $(SPLEVOBJS)
 	@echo Linking $@...
@@ -1106,7 +1153,7 @@ $(O)panic.o:  $(U)panic.c $(CONFIG_H)
 #   * -c (which is included in CFLAGS) substituted
 #	with -o$@
 #   * targets prefixed with $(O)
-#   * $(CC) changed to $(cc)
+#   * $(cc) changed to $(cc)
 # but otherwise untouched. 
 # That means that there is some irrelevant stuff
 # in here, but maintenance should be easier.
@@ -1145,6 +1192,55 @@ $(O)topl.o: ../win/tty/topl.c $(HACK_H) $(INCL)/tcap.h
 $(O)wintty.o: ../win/tty/wintty.c $(HACK_H) $(INCL)/dlb.h \
 		$(INCL)/patchlevel.h $(INCL)/tcap.h
 	$(cc) $(CFLAGS) -o$@ ../win/tty/wintty.c
+
+
+$(O)noegnud_interface.o: $(NOEGNUDDIR)/noegnud_interface.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_interface.c
+$(O)noegnud_common.o: $(NOEGNUDDIR)/noegnud_common.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_common.c
+$(O)noegnud_glfuncs.o: $(NOEGNUDDIR)/noegnud_glfuncs.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_glfuncs.c
+$(O)noegnud_collection.o: $(NOEGNUDDIR)/noegnud_collection.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_collection.c
+$(O)noegnud_tilesets.o: $(NOEGNUDDIR)/noegnud_tilesets.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_tilesets.c
+$(O)noegnud_gui.o: $(NOEGNUDDIR)/noegnud_gui.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_gui.c
+$(O)noegnud_rip.o: $(NOEGNUDDIR)/noegnud_rip.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_rip.c
+$(O)noegnud_options.o: $(NOEGNUDDIR)/noegnud_options.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_options.c
+$(O)noegnud_typeloader.o: $(NOEGNUDDIR)/noegnud_typeloader.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_typeloader.c
+$(O)noegnud_fonts.o: $(NOEGNUDDIR)/noegnud_fonts.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_fonts.c
+$(O)noegnud_gff_tga.o: $(NOEGNUDDIR)/noegnud_gff_tga.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_gff_tga.c
+$(O)noegnud_render.o: $(NOEGNUDDIR)/noegnud_render.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_render.c
+$(O)noegnud_render_char.o: $(NOEGNUDDIR)/noegnud_render_char.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_render_char.c
+$(O)noegnud_render_tile.o: $(NOEGNUDDIR)/noegnud_render_tile.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_render_tile.c
+$(O)noegnud_render_3d.o: $(NOEGNUDDIR)/noegnud_render_3d.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_render_3d.c
+$(O)noegnud_lang.o: $(NOEGNUDDIR)/noegnud_lang.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_lang.c
+$(O)noegnud_debug.o: $(NOEGNUDDIR)/noegnud_debug.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_debug.c
+$(O)noegnud_mem.o: $(NOEGNUDDIR)/noegnud_mem.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_mem.c
+$(O)noegnud_reference.o: $(NOEGNUDDIR)/noegnud_reference.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_reference.c
+$(O)noegnud_textcolour.o: $(NOEGNUDDIR)/noegnud_textcolour.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_textcolour.c
+$(O)noegnud_textcolouring.o: $(NOEGNUDDIR)/noegnud_textcolouring.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_textcolouring.c
+$(O)noegnud_sound.o: $(NOEGNUDDIR)/noegnud_sound.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_sound.c
+$(O)noegnud_widgettheme.o: $(NOEGNUDDIR)/noegnud_widgettheme.c
+	$(cc) -o$@ $(WINNOEGNUDCFLAGS) -c $(NOEGNUDDIR)/noegnud_widgettheme.c
+
 $(O)Window.o: ../win/X11/Window.c $(INCL)/xwindowp.h $(INCL)/xwindow.h \
 		$(CONFIG_H)
 	$(cc) $(CFLAGS) -o$@ ../win/X11/Window.c
